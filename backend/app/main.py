@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from uuid import uuid4
 
 app = FastAPI(
     title="SQAnalytics API",
@@ -9,7 +10,14 @@ app = FastAPI(
 
 
 # -----------------------------
-# Data Model
+# Temporary Storage
+# -----------------------------
+
+qr_storage = []
+
+
+# -----------------------------
+# Request Model
 # -----------------------------
 
 class QRCreateRequest(BaseModel):
@@ -17,7 +25,7 @@ class QRCreateRequest(BaseModel):
 
 
 # -----------------------------
-# Root Endpoint
+# Root
 # -----------------------------
 
 @app.get("/")
@@ -28,7 +36,7 @@ def home():
 
 
 # -----------------------------
-# Health Check
+# Health
 # -----------------------------
 
 @app.get("/health")
@@ -51,13 +59,26 @@ def version():
 
 
 # -----------------------------
-# Create QR (Mock)
+# Create QR
 # -----------------------------
 
 @app.post("/qr")
 def create_qr(payload: QRCreateRequest):
 
-    return {
-        "message": "QR record created successfully",
+    qr_record = {
+        "qr_id": str(uuid4()),
         "destination_url": payload.destination_url
     }
+
+    qr_storage.append(qr_record)
+
+    return qr_record
+
+
+# -----------------------------
+# Get All QRs
+# -----------------------------
+
+@app.get("/qr")
+def get_all_qrs():
+    return qr_storage
