@@ -1,6 +1,8 @@
 fastapi
 uvicorn
-fastapi
-uvicorn
+sqlalchemy
 psycopg[binary]
 python-dotenv
+qrcode
+Pillow
+user-agents

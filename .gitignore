@@ -17,3 +17,6 @@ Thumbs.db
 
 # Generated QR images
 backend/generated_qr/
+
+# Ignore .workspace
+*.code-workspace
