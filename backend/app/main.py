@@ -1,10 +1,33 @@
+from fastapi import Depends
 from fastapi import FastAPI
-from pydantic import BaseModel
-from uuid import uuid4
 
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.database import engine
+from app.database import get_db
+
+from app.schemas import QRCreate
+from app.crud import create_qr
+from app.crud import get_all_qrs
+
+from fastapi.responses import RedirectResponse
+
+from app.crud import get_qr_by_short_code
+
+from fastapi import Request
+from app.crud import create_scan_event
+
+from user_agents import parse
+
+from fastapi import Request
+from fastapi.responses import RedirectResponse
+
+from app.crud import get_total_scans
+from app.crud import get_browser_distribution
+from app.crud import get_device_distribution
+
+from app.qr_generator import generate_qr_image
 
 app = FastAPI(
     title="SQAnalytics API",
@@ -12,58 +35,31 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# ----------------------------------
-# Temporary Storage
-# ----------------------------------
-
-qr_storage = []
-
-
-# ----------------------------------
-# Request Model
-# ----------------------------------
-
-class QRCreateRequest(BaseModel):
-    destination_url: str
-
-
-# ----------------------------------
-# Root
-# ----------------------------------
 
 @app.get("/")
 def home():
+
     return {
         "message": "SQAnalytics API is running"
     }
 
 
-# ----------------------------------
-# Health
-# ----------------------------------
-
 @app.get("/health")
 def health_check():
+
     return {
         "status": "healthy"
     }
 
 
-# ----------------------------------
-# Version
-# ----------------------------------
-
 @app.get("/version")
 def version():
+
     return {
         "project": "SQAnalytics",
         "version": "0.1.0"
     }
 
-
-# ----------------------------------
-# Database Connection Test
-# ----------------------------------
 
 @app.get("/db-test")
 def db_test():
@@ -91,27 +87,167 @@ def db_test():
         }
 
 
-# ----------------------------------
-# Create QR
-# ----------------------------------
-
 @app.post("/qr")
-def create_qr(payload: QRCreateRequest):
+def create_new_qr(
+    qr: QRCreate,
+    db: Session = Depends(get_db)
+):
+    result = create_qr(
+        db=db,
+        title=qr.title,
+        destination_url=qr.destination_url
+    )
 
-    qr_record = {
-        "qr_id": str(uuid4()),
-        "destination_url": payload.destination_url
+    created_qr = result["qr"]
+    qr_file = result["qr_file"]
+
+    return {
+        "qr_id": str(created_qr.qr_id),
+        "short_code": created_qr.short_code,
+        "title": created_qr.title,
+        "destination_url": created_qr.destination_url,
+        "status": created_qr.status,
+        "qr_file": qr_file
     }
 
-    qr_storage.append(qr_record)
-
-    return qr_record
-
-
-# ----------------------------------
-# Get All QRs
-# ----------------------------------
 
 @app.get("/qr")
-def get_all_qrs():
-    return qr_storage
+def get_qr_endpoint(
+    db: Session = Depends(get_db)
+):
+
+    qrs = get_all_qrs(db)
+
+    results = []
+
+    for qr in qrs:
+
+        results.append(
+            {
+                "qr_id": str(qr.qr_id),
+                "short_code": qr.short_code,
+                "title": qr.title,
+                "destination_url": qr.destination_url,
+                "status": qr.status
+            }
+        )
+
+    return results
+
+@app.get("/r/{short_code}")
+def redirect_qr(
+    short_code: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+
+    qr = get_qr_by_short_code(
+        db=db,
+        short_code=short_code
+    )
+
+    if not qr:
+
+        return {
+            "error": "QR code not found"
+        }
+
+    user_agent_string = request.headers.get(
+        "user-agent",
+        ""
+    )
+
+    ua = parse(user_agent_string)
+
+    browser = ua.browser.family
+
+    operating_system = ua.os.family
+
+    if ua.is_mobile:
+        device_type = "Mobile"
+
+    elif ua.is_tablet:
+        device_type = "Tablet"
+
+    else:
+        device_type = "Desktop"
+
+    create_scan_event(
+        db=db,
+        qr_id=qr.qr_id,
+        user_agent=user_agent_string,
+        browser=browser,
+        operating_system=operating_system,
+        device_type=device_type,
+        referrer=request.headers.get("referer")
+    )
+
+    return RedirectResponse(
+        url=qr.destination_url,
+        status_code=302
+    )
+
+@app.get("/analytics/summary")
+def analytics_summary(
+    db: Session = Depends(get_db)
+):
+
+    total_scans = get_total_scans(db)
+
+    browsers = get_browser_distribution(db)
+
+    devices = get_device_distribution(db)
+
+    browser_results = []
+
+    for browser in browsers:
+
+        browser_results.append(
+            {
+                "browser": browser[0],
+                "count": browser[1]
+            }
+        )
+
+    device_results = []
+
+    for device in devices:
+
+        device_results.append(
+            {
+                "device_type": device[0],
+                "count": device[1]
+            }
+        )
+
+    return {
+        "total_scans": total_scans,
+        "browser_distribution": browser_results,
+        "device_distribution": device_results
+    }
+
+@app.get("/qr/{short_code}/generate")
+def generate_qr(
+    short_code: str,
+    db: Session = Depends(get_db)
+):
+
+    qr = get_qr_by_short_code(
+        db=db,
+        short_code=short_code
+    )
+
+    if not qr:
+
+        return {
+            "error": "QR code not found"
+        }
+
+    file_path = generate_qr_image(
+        short_code
+    )
+
+    return {
+        "message": "QR generated",
+        "file": file_path
+    }
