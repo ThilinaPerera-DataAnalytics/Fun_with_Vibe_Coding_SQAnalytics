@@ -29,6 +29,10 @@ from app.crud import get_device_distribution
 
 from app.qr_generator import generate_qr_image
 
+from pathlib import Path
+
+from fastapi.responses import FileResponse
+
 app = FastAPI(
     title="SQAnalytics API",
     description="Smart QR Analytics Platform Backend",
@@ -251,3 +255,33 @@ def generate_qr(
         "message": "QR generated",
         "file": file_path
     }
+
+@app.get("/qr/{short_code}/download")
+def download_qr(
+    short_code: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Download a generated QR code as a PNG file.
+    """
+
+    qr = get_qr_by_short_code(
+        db=db,
+        short_code=short_code
+    )
+
+    if not qr:
+        return {
+            "error": "QR code not found"
+        }
+
+    file_path = Path("generated_qr") / f"{short_code}.png"
+
+    if not file_path.exists():
+        generate_qr_image(short_code)
+
+    return FileResponse(
+        path=file_path,
+        media_type="image/png",
+        filename=f"{short_code}.png"
+    )
