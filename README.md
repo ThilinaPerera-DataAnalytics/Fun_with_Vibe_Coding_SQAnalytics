@@ -10,22 +10,24 @@ The platform enables QR codes to redirect users to dynamic digital content while
 
 ---
 
-## Vision
+## Vision Diagrm
 
 SQAnalytics bridges physical media and digital analytics.
 
 ```text
 Printed QR Code
         ↓
-Permanent Redirect URL
+https://love-bar.kndb.stream/r/{short_code}
         ↓
-Scan Event Captured
+FastAPI Backend (Render)
         ↓
-Analytics Stored
+Analytics Logged (Supabase)
         ↓
-User Redirected to Digital Content
+Redirect to Destination
         ↓
-Analytics Dashboard
+Analytics API
+        ↓
+Future Dashboard (Next.js)
 ````
 
 The initial real-world use case is enabling printed publications to link readers to digital content while providing measurable engagement analytics.
@@ -34,14 +36,17 @@ The initial real-world use case is enabling printed publications to link readers
 
 ## Core Capabilities
 
-* Create and manage QR-code records
-* Generate downloadable QR-code images
-* Redirect QR scans to dynamic destination URLs
+## Core Capabilities
+
+* Create and manage QR records
+* Automatically generate branded QR codes
+* Download QR codes as PNG images
+* Redirect QR scans through permanent URLs
 * Record every scan event in PostgreSQL
-* Capture browser, operating system, device type, referrer, and timestamp
-* Provide analytics through REST API endpoints
-* Support cloud-hosted redirects independent of a local machine
-* Prepare permanent QR infrastructure through a custom domain
+* Capture browser, operating system, device type, user-agent, and timestamp
+* Generate analytics summaries through REST APIs
+* Support cloud-hosted redirects using a custom domain
+* Production-ready backend deployed on Render
 
 ---
 
@@ -79,13 +84,13 @@ YouTube / Website / Digital Content
 | Backend API        | FastAPI                  |
 | API Server         | Uvicorn                  |
 | ORM                | SQLAlchemy               |
-| Database           | PostgreSQL               |
+| Database           | PostgreSQL  17              |
 | Cloud Database     | Supabase                 |
 | PostgreSQL Driver  | psycopg2                 |
 | QR Generation      | Python `qrcode` + Pillow |
 | User-Agent Parsing | `user-agents`            |
 | Backend Hosting    | Render                   |
-| DNS & Domain       | Cloudflare               |
+| DNS / SSL          | Cloudflare               |
 | Source Control     | Git                      |
 | Repository Hosting | GitHub                   |
 | Planned Frontend   | Next.js                  |
@@ -98,8 +103,13 @@ YouTube / Website / Digital Content
 
 * Create QR records through `POST /qr`
 * Automatically generate unique short codes
-* Automatically generate PNG QR images
+* Automatically generate branded QR images
 * Retrieve QR records through the API
+
+<div align="center">
+  <img src="branded_qr.png" width="250" />
+</div>
+
 
 ### Redirect Engine
 
@@ -118,14 +128,14 @@ The backend:
 
 ### Scan Analytics
 
-Each scan can capture:
+Current scan analytics include:
 
 * Scan timestamp
 * Browser
 * Operating system
 * Device type
-* User-agent string
-* Referrer
+* User-Agent string
+* Scan creation timestamp
 
 ### Analytics API
 
@@ -154,7 +164,7 @@ GET  /r/{short_code}
 
 GET  /analytics/summary
 
-GET  /qr/{short_code}/generate
+GET  /qr/{short_code}/download
 ```
 
 Interactive API documentation is available through FastAPI Swagger UI at:
@@ -167,15 +177,16 @@ Interactive API documentation is available through FastAPI Swagger UI at:
 
 ## Production Deployment
 
-The SQAnalytics backend is deployed on Render and connected to a cloud-hosted PostgreSQL database on Supabase.
+The SQAnalytics backend is deployed on Render and connected to a cloud-hosted PostgreSQL database hosted on Supabase.
 
-Current production backend:
+
+Production API:
 
 ```text
 https://sqanalytics-api.onrender.com
 ```
 
-Planned permanent QR redirect domain:
+Production QR Redirect Domain:
 
 ```text
 https://[Subdomain].kndb.stream
@@ -185,65 +196,110 @@ The custom domain allows printed QR codes to remain permanent even if the underl
 
 ---
 
+
+---
+
+# 8. Project Status
+
+Replace the entire section with
+
+```md
 ## Project Status
 
-### Completed
+### ✅ Completed
 
 * [x] Git and GitHub foundation
-* [x] FastAPI backend setup
-* [x] REST API endpoints
-* [x] PostgreSQL schema design
-* [x] Supabase cloud database integration
-* [x] SQLAlchemy ORM integration
-* [x] Persistent QR registry
+* [x] FastAPI backend
+* [x] REST API development
+* [x] PostgreSQL database
+* [x] Supabase integration
+* [x] SQLAlchemy ORM
+* [x] QR registry
+* [x] Automatic QR generation
+* [x] Branded QR generation
+* [x] QR download endpoint
 * [x] QR redirect engine
-* [x] Scan event logging
-* [x] Browser, OS, and device detection
+* [x] Scan analytics logging
+* [x] Browser detection
+* [x] Operating system detection
+* [x] Device detection
 * [x] Analytics summary API
-* [x] QR PNG generation
-* [x] Automatic QR generation after QR creation
-* [x] Public development testing through ngrok
-* [x] Production backend deployment to Render
-* [x] Production database connection verified
+* [x] Render deployment
+* [x] Cloudflare custom domain
+* [x] HTTPS enabled
+* [x] Production QR redirect verification
 
-### In Progress
+### 🚧 Next Milestone (Backend v1.1)
 
-* [ ] Connect `[Subdomain].kndb.stream` to production backend
-* [ ] Configure and verify production HTTPS
-* [ ] Test permanent QR scan → analytics → redirect flow
-
-### Planned
-
-* [ ] QR download endpoint
-* [ ] Simple admin interface
-* [ ] Analytics dashboard
+* [ ] Visitor session tracking
+* [ ] Visitor identification
+* [ ] Geo-location analytics
+* [ ] Language detection
+* [ ] Landing-page engagement analytics
 * [ ] Next.js frontend
-* [ ] Authentication and user management
-* [ ] Advanced QR management
-* [ ] Production monitoring
-* [ ] Automated testing and CI/CD
+* [ ] Authentication
+* [ ] Analytics dashboard
 
 ---
 
 ## Current Development Stage
 
-**Backend MVP operational and deployed.**
+**SQAnalytics Backend v1.0 is complete and running in production.**
 
-The immediate objective is to establish the permanent production redirect flow:
+Current production flow
 
 ```text
 Printed QR
-    ↓
-[Subdomain].kndb.stream
-    ↓
-FastAPI on Render
-    ↓
-Scan Recorded in Supabase
-    ↓
-Destination Redirect
-```
+      ↓
+love-bar.kndb.stream
+      ↓
+FastAPI (Render)
+      ↓
+Analytics stored in Supabase
+      ↓
+Redirect to destination
 
-Once this flow is verified, SQAnalytics will have a functional end-to-end production QR analytics pipeline.
+---
+
+
+---
+
+# 10. Add a new section before "Author"
+
+```md
+---
+
+## Roadmap
+
+### Backend v1.0 ✅
+
+- REST API
+- QR Registry
+- Automatic QR Generation
+- Branded QR Codes
+- QR Download
+- Analytics Logging
+- Production Deployment
+- Custom Domain
+- HTTPS
+
+### Backend v1.1 🚧
+
+- Visitor Sessions
+- Visitor Identification
+- GeoIP Analytics
+- Country / Region / City
+- Language Detection
+- Returning Visitors
+- Advanced Analytics API
+
+### Frontend v2.0
+
+- Next.js Web Application
+- QR Management Portal
+- Analytics Dashboard
+- Authentication
+- User Management
 
 ---
 
