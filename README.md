@@ -4,20 +4,22 @@
 
 ![SQAnalytics Project Logo](./main_logo.png)
 
-SQAnalytics is a full-stack analytics platform designed to transform printed QR-code interactions into measurable digital engagement.
+SQAnalytics is a full-stack analytics platform designed to transform printed/ digital QR-code interactions into measurable digital engagement.
 
-The platform enables QR codes to redirect users to dynamic digital content while capturing scan analytics such as browser, operating system, device type, referrer, and scan timestamp.
+The platform enables QR codes to redirect users to dynamic digital content while capturing scan analytics such as scan timestamp, browser, operating system, device type and country. 
+
+This is an end-to-end full-stack analytics engineering project demonstrating API development, cloud databases, event tracking, deployment, and analytics architecture.
 
 ---
 
-## Vision Diagrm
+## 1. Vision Diagrm
 
 SQAnalytics bridges physical media and digital analytics.
 
 ```text
 Printed QR Code
         ↓
-https://love-bar.kndb.stream/r/{short_code}
+https://[Sub-domain].kndb.stream/r/{short_code}
         ↓
 FastAPI Backend (Render)
         ↓
@@ -36,14 +38,12 @@ The initial real-world use case is enabling printed publications to link readers
 
 ## Core Capabilities
 
-## Core Capabilities
-
 * Create and manage QR records
 * Automatically generate branded QR codes
 * Download QR codes as PNG images
 * Redirect QR scans through permanent URLs
 * Record every scan event in PostgreSQL
-* Capture browser, operating system, device type, user-agent, and timestamp
+* Capture browser, operating system, device type, country, and timestamp
 * Generate analytics summaries through REST APIs
 * Support cloud-hosted redirects using a custom domain
 * Production-ready backend deployed on Render
@@ -73,11 +73,11 @@ Destination Redirect
 YouTube / Website / Digital Content
 ```
 
-> `[Subdomain].kndb.stream` is the planned permanent QR redirect domain and is currently being connected to the production backend.
+> `[Sub-domain].kndb.stream` is the current permanent QR redirect domain.
 
 ---
 
-## Tech Stack
+## 2. Tech Stack
 
 | Layer              | Technology               |
 | ------------------ | ------------------------ |
@@ -97,7 +97,7 @@ YouTube / Website / Digital Content
 
 ---
 
-## Current Backend Features
+## 3. Current Backend Features
 
 ### QR Management
 
@@ -147,7 +147,7 @@ The backend currently provides analytics including:
 
 ---
 
-## API Endpoints
+## 4. API Endpoints
 
 Current major endpoints include:
 
@@ -175,7 +175,7 @@ Interactive API documentation is available through FastAPI Swagger UI at:
 
 ---
 
-## Production Deployment
+## 5. Production Deployment
 
 The SQAnalytics backend is deployed on Render and connected to a cloud-hosted PostgreSQL database hosted on Supabase.
 
@@ -196,17 +196,9 @@ The custom domain allows printed QR codes to remain permanent even if the underl
 
 ---
 
-
----
-
-# 8. Project Status
-
-Replace the entire section with
-
-```md
-## Project Status
-
-### ✅ Completed
+# 6. Project Status
+```
+✅ Completed
 
 * [x] Git and GitHub foundation
 * [x] FastAPI backend
@@ -229,7 +221,7 @@ Replace the entire section with
 * [x] HTTPS enabled
 * [x] Production QR redirect verification
 
-### 🚧 Next Milestone (Backend v1.1)
+🚧 Next Milestone (Backend v1.1)
 
 * [ ] Visitor session tracking
 * [ ] Visitor identification
@@ -239,10 +231,10 @@ Replace the entire section with
 * [ ] Next.js frontend
 * [ ] Authentication
 * [ ] Analytics dashboard
-
+```
 ---
 
-## Current Development Stage
+## 7. Current Development Stage
 
 **SQAnalytics Backend v1.0 is complete and running in production.**
 
@@ -251,27 +243,19 @@ Current production flow
 ```text
 Printed QR
       ↓
-love-bar.kndb.stream
+[Sub-domain].kndb.stream
       ↓
 FastAPI (Render)
       ↓
 Analytics stored in Supabase
       ↓
 Redirect to destination
-
+```
 ---
 
-
----
-
-# 10. Add a new section before "Author"
-
+## 8. Roadmap
 ```md
----
-
-## Roadmap
-
-### Backend v1.0 ✅
+Backend v1.0 ✅
 
 - REST API
 - QR Registry
@@ -283,7 +267,7 @@ Redirect to destination
 - Custom Domain
 - HTTPS
 
-### Backend v1.1 🚧
+Backend v1.1 🚧
 
 - Visitor Sessions
 - Visitor Identification
@@ -293,27 +277,20 @@ Redirect to destination
 - Returning Visitors
 - Advanced Analytics API
 
-### Frontend v2.0
+Frontend v2.0
 
 - Next.js Web Application
 - QR Management Portal
 - Analytics Dashboard
 - Authentication
 - User Management
-
----
-
-## Project Purpose
-
-SQAnalytics is both:
-
-1. A real-world product designed for measurable QR engagement in printed publications and physical media.
-2. An end-to-end full-stack analytics engineering project demonstrating API development, cloud databases, event tracking, deployment, and analytics architecture.
-
+```
 ---
 
 ## Author
 
-**Thilina Perera**
-
-Data Analytics | Business Intelligence | Data Engineering | Full-Stack Analytics Projects
+**Thilina Perera | Data with TP**
+```
+📌 Data Science/ Data Analytics D-Technosavant
+📌 Machine Learning/ Deep Learning, LLM/LMM, NLP, and Data Engineering Inquisitive
+``` 
