@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw
 
 load_dotenv()
 
-BASE_URL = os.getenv("BASE_URL")
+BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
 
 
 # ---------------------------------------------------------
@@ -43,15 +43,41 @@ OUTPUT_FOLDER = os.path.join(
 
 def generate_qr_image(
     short_code: str,
+    display_slug: str | None = None,
     logo_path: str | None = None
-):
+) -> str:
+
+    """
+    Generate a branded QR code image for a registered QR record.
+
+        Args:
+            short_code: Unique QR identifier.
+            display_slug: Optional human-friendly slug appended to the redirect URL.
+            logo_path: Optional custom logo image.
+
+        Returns:
+            Absolute path to the generated PNG image.
+
+        Raises:
+            ValueError: If BASE_URL is not configured.
+    """
 
     if not BASE_URL:
         raise ValueError(
             "BASE_URL environment variable is not configured."
         )
 
-    redirect_url = f"{BASE_URL}/r/{short_code}"
+# ---------------------------------------------------------
+# Build redirect URL
+# ---------------------------------------------------------
+
+    redirect_path = (
+        f"{short_code}-{display_slug}"
+        if display_slug
+        else short_code
+    )
+
+    redirect_url = f"{BASE_URL}/r/{redirect_path}"    
 
     # Create QR code with high error correction.
     # Level H allows approximately 30% error recovery,
@@ -72,67 +98,7 @@ def generate_qr_image(
         back_color="white"
     ).convert("RGBA")
 
-    # # -----------------------------------------------------
-    # # Add optional centered logo
-    # # -----------------------------------------------------
-
-    # selected_logo_path = logo_path or LOGO_PATH
-
-    # if os.path.exists(selected_logo_path):
-
-    #     logo = Image.open(
-    #         selected_logo_path
-    #     ).convert("RGBA")
-
-    #     qr_width, qr_height = qr_image.size
-
-    #     # Keep logo conservative for reliable scanning.
-    #     # Maximum logo width = 18% of QR width.
-
-    #     max_logo_size = int(qr_width * 0.18)
-
-    #     logo.thumbnail(
-    #         (max_logo_size, max_logo_size),
-    #         Image.Resampling.LANCZOS
-    #     )
-
-    #     logo_width, logo_height = logo.size
-
-    #     # Add white safety padding around the logo.
-
-    #     padding = max(
-    #         4,
-    #         int(qr_width * 0.005)
-    #     )
-
-    #     background_width = logo_width + (padding * 2)
-    #     background_height = logo_height + (padding * 2)
-
-    #     background = Image.new(
-    #         "RGBA",
-    #         (background_width, background_height),
-    #         "white"
-    #     )
-
-    #     background.paste(
-    #         logo,
-    #         (padding, padding),
-    #         logo
-    #     )
-
-    #     # Calculate centered position.
-
-    #     position = (
-    #         (qr_width - background_width) // 2,
-    #         (qr_height - background_height) // 2
-    #     )
-
-    #     qr_image.paste(
-    #         background,
-    #         position,
-    #         background
-    #     )
-
+    
     # -----------------------------------------------------
     # Add optional centered logo
     # -----------------------------------------------------

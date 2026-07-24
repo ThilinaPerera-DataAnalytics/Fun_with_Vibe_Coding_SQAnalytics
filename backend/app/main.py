@@ -1,95 +1,78 @@
+import time
+from datetime import datetime, UTC
+
 from fastapi import Depends
 from fastapi import FastAPI
+from fastapi import Request
+from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from pathlib import Path
 
 from app.database import engine
 from app.database import get_db
 
 from app.schemas import QRCreate
+
 from app.crud import create_qr
 from app.crud import get_all_qrs
-
-from fastapi.responses import RedirectResponse
-
 from app.crud import get_qr_by_short_code
-
-from fastapi import Request
 from app.crud import create_scan_event
-
-from user_agents import parse
-
-from fastapi import Request
-from fastapi.responses import RedirectResponse
-
 from app.crud import get_total_scans
 from app.crud import get_browser_distribution
 from app.crud import get_device_distribution
 
+from user_agents import parse
+
 from app.qr_generator import generate_qr_image
-
-from pathlib import Path
-
-from fastapi.responses import FileResponse
+from app.qr_generator import BASE_URL
 
 app = FastAPI(
     title="SQAnalytics API",
     description="Smart QR Analytics Platform Backend",
-    version="0.1.0"
+    version="1.2.0"
 )
-
 
 @app.get("/")
 def home():
-
     return {
         "message": "SQAnalytics API is running"
     }
 
-
 @app.get("/health")
 def health_check():
-
     return {
         "status": "healthy"
     }
 
-
 @app.get("/version")
 def version():
-
     return {
         "project": "SQAnalytics",
-        "version": "0.1.0"
+        "version": "1.2.0"
     }
-
 
 @app.get("/db-test")
 def db_test():
-
     try:
-
         with engine.connect() as connection:
-
             result = connection.execute(
                 text("SELECT version();")
             )
-
             version = result.scalar()
-
             return {
                 "status": "connected",
                 "database": version
             }
 
     except Exception as e:
-
         return {
             "status": "failed",
             "error": str(e)
         }
-
 
 @app.post("/qr")
 def create_new_qr(
@@ -97,35 +80,44 @@ def create_new_qr(
     db: Session = Depends(get_db)
 ):
     result = create_qr(
-        db=db,
-        title=qr.title,
-        destination_url=qr.destination_url
+    db=db,
+    title=qr.title,
+    destination_url=qr.destination_url,
+    display_slug=qr.display_slug
     )
 
     created_qr = result["qr"]
     qr_file = result["qr_file"]
 
+    redirect_url = (
+        f"{BASE_URL}/r/{created_qr.short_code}"
+    )
+
+    if created_qr.display_slug:
+        redirect_url = (
+            f"{BASE_URL}/r/"
+            f"{created_qr.short_code}-{created_qr.display_slug}"
+        )
+
     return {
         "qr_id": str(created_qr.qr_id),
         "short_code": created_qr.short_code,
+        "display_slug": created_qr.display_slug,
+        "redirect_url": redirect_url,
         "title": created_qr.title,
         "destination_url": created_qr.destination_url,
         "status": created_qr.status,
         "qr_file": qr_file
     }
 
-
 @app.get("/qr")
 def get_qr_endpoint(
     db: Session = Depends(get_db)
 ):
-
     qrs = get_all_qrs(db)
-
     results = []
 
     for qr in qrs:
-
         results.append(
             {
                 "qr_id": str(qr.qr_id),
@@ -135,15 +127,20 @@ def get_qr_endpoint(
                 "status": qr.status
             }
         )
-
     return results
 
-@app.get("/r/{short_code}")
+@app.get("/r/{qr_identifier}")
 def redirect_qr(
-    short_code: str,
+    qr_identifier: str,
     request: Request,
     db: Session = Depends(get_db)
 ):
+
+    # ---------------------------------
+    # Extract short code from URL
+    # ---------------------------------
+
+    short_code = qr_identifier.split("-", 1)[0]
 
     qr = get_qr_by_short_code(
         db=db,
@@ -156,8 +153,23 @@ def redirect_qr(
             "error": "QR code not found"
         }
 
+    # ---------------------------------
+    # Start response time measurement
+    # ---------------------------------
+
+    start_time = time.perf_counter()
+
+    # ---------------------------------
+    # Request Information
+    # ---------------------------------
+
     user_agent_string = request.headers.get(
         "user-agent",
+        ""
+    )
+
+    language = request.headers.get(
+        "accept-language",
         ""
     )
 
@@ -173,8 +185,21 @@ def redirect_qr(
     elif ua.is_tablet:
         device_type = "Tablet"
 
-    else:
+    elif ua.is_pc:
         device_type = "Desktop"
+
+    else:
+        device_type = "Other"
+
+    # ---------------------------------
+    # Analytics
+    # ---------------------------------
+
+    response_time_ms = int(
+        (time.perf_counter() - start_time) * 1000
+    )
+
+    redirect_timestamp = datetime.now(UTC)
 
     create_scan_event(
         db=db,
@@ -183,7 +208,12 @@ def redirect_qr(
         browser=browser,
         operating_system=operating_system,
         device_type=device_type,
-        referrer=request.headers.get("referer")
+        referrer=request.headers.get("referer"),
+        language=language,
+        destination_url=qr.destination_url,
+        redirect_timestamp=redirect_timestamp,
+        redirect_success=True,
+        response_time_ms=response_time_ms
     )
 
     return RedirectResponse(
@@ -248,7 +278,8 @@ def generate_qr(
         }
 
     file_path = generate_qr_image(
-        short_code
+        short_code=qr.short_code,
+        display_slug=qr.display_slug
     )
 
     return {
@@ -278,7 +309,11 @@ def download_qr(
     file_path = Path("generated_qr") / f"{short_code}.png"
 
     if not file_path.exists():
-        generate_qr_image(short_code)
+
+        generate_qr_image(
+            short_code=qr.short_code,
+            display_slug=qr.display_slug
+    )
 
     return FileResponse(
         path=file_path,

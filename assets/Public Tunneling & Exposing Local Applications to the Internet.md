@@ -604,7 +604,7 @@ graph TD
 | Feature | Free Plan | Paid Plan |
 |---------|-----------|-----------|
 | **Tunnels** | 1 | Unlimited |
-| **URL** | Random | Custom subdomain |
+| **URL** | Random | Custom sub-domain |
 | **TCP Tunnels** | Limited | Yes |
 | **Web Interface** | Yes | Yes |
 | **Request Inspection** | Yes | Yes |
@@ -764,7 +764,7 @@ tunnels:
   webapp:
     proto: http
     addr: 8000
-    subdomain: myapp
+    sub-domain: myapp
     basic_auth: "username:password"
     schemes:
       - https
@@ -772,7 +772,7 @@ tunnels:
   api:
     proto: http
     addr: 8001
-    subdomain: api
+    sub-domain: api
     host_header: rewrite
   
   qr:
@@ -2756,8 +2756,8 @@ ngrok http 8000
 # Expose with basic auth
 ngrok http 8000 --basic-auth="user:pass"
 
-# Use custom subdomain
-ngrok http 8000 --subdomain=myapp
+# Use custom sub-domain
+ngrok http 8000 --sub-domain=myapp
 
 # Expose multiple ports
 ngrok http 8000 --host-header=localhost:8000
@@ -3079,7 +3079,7 @@ base_url = os.getenv("PUBLIC_URL", "http://localhost:8000")
 5. Launch production
 
 ### Q17: What's the difference between ngrok free and paid plans?
-**Answer:** Paid plans offer custom subdomains, more tunnels, and better performance. Free tier has a random subdomain and limits.
+**Answer:** Paid plans offer custom sub-domains, more tunnels, and better performance. Free tier has a random sub-domain and limits.
 
 ### Q18: How do you test API webhooks locally?
 **Answer:** Use ngrok to expose your local API endpoint with a public URL that webhook services can send requests to.

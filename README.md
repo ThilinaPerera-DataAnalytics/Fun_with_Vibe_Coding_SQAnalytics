@@ -36,15 +36,18 @@ The initial real-world use case is enabling printed publications to link readers
 
 ---
 
-## Core Capabilities
+## Core Capabilities (Backend v1.2.0)
 
 * Create and manage QR records
+  * Generate human-friendly QR URLs (With custom destination identifier)
 * Automatically generate branded QR codes
 * Download QR codes as PNG images
 * Redirect QR scans through permanent URLs
+* Preserve backward compatibility with legacy QR codes
 * Record every scan event in PostgreSQL
 * Capture browser, operating system, device type, country, and timestamp
 * Generate analytics summaries through REST APIs
+* Automatic timestamp management using PostgreSQL defaults
 * Support cloud-hosted redirects using a custom domain
 * Production-ready backend deployed on Render
 
@@ -55,18 +58,18 @@ The initial real-world use case is enabling printed publications to link readers
 ```text
 Reader / Mobile Device
           ↓
-     QR Code Scan
+      QR Code Scan
           ↓
-   [Subdomain].kndb.stream
+https://[Sub-domain].kndb.stream/r/{short_code}-{display_slug}
           ↓
-     FastAPI API
-       (Render)
+      FastAPI API
+        (Render)
           ↓
-   ┌──────┴──────┐
-   ↓             ↓
-Scan Event    QR Registry
-   ↓             ↓
-PostgreSQL / Supabase
+   ┌────────┴────────┐
+   ↓                 ↓
+Analytics Log     QR Registry
+   ↓                 ↓
+ PostgreSQL (Supabase)
           ↓
 Destination Redirect
           ↓
@@ -111,13 +114,27 @@ YouTube / Website / Digital Content
 </div>
 
 
-### Redirect Engine
+### Redirect Engine (v1.2)
 
 A QR scan reaches a redirect endpoint:
 
 ```text
-/r/{short_code}
+/r/{short_code}-{display_slug}
 ```
+
+Legacy QR codes without a display slug remain fully supported.
+
+Examples
+
+```
+/r/19fba1ff
+```
+
+```
+/r/19fba1ff-where-words-meet-music
+```
+
+Both URLs resolve to the same destination.
 
 The backend:
 
@@ -136,6 +153,9 @@ Current scan analytics include:
 * Device type
 * User-Agent string
 * Scan creation timestamp
+* Redirect destination URL
+* Redirect success status
+* Redirect response time
 
 ### Analytics API
 
@@ -160,7 +180,8 @@ GET  /db-test
 POST /qr
 GET  /qr
 
-GET  /r/{short_code}
+GET /r/{short_code}
+GET /r/{short_code}-{display_slug}
 
 GET  /analytics/summary
 
@@ -189,7 +210,7 @@ https://sqanalytics-api.onrender.com
 Production QR Redirect Domain:
 
 ```text
-https://[Subdomain].kndb.stream
+https://[Sub-domain].kndb.stream
 ```
 
 The custom domain allows printed QR codes to remain permanent even if the underlying hosting provider changes in the future.
@@ -220,30 +241,41 @@ The custom domain allows printed QR codes to remain permanent even if the underl
 * [x] Cloudflare custom domain
 * [x] HTTPS enabled
 * [x] Production QR redirect verification
+* [x] Human-friendly QR URLs
+* [x] Display slug support
+* [x] Slug normalization
+* [x] Friendly redirect URLs
+* [x] Automatic database timestamps
 
-🚧 Next Milestone (Backend v1.1)
+🚧 Next Milestone (Backend v1.2.1)
 
+* [ ] Duplicate slug handling
+* [ ] HTTP exception improvements
+* [ ] URL helper refactoring
+
+🚧 Backend v1.3
+
+* [ ] GeoIP country detection
+* [ ] Region detection
+* [ ] City detection
+* [ ] Timezone detection
+* [ ] Returning visitor analytics
 * [ ] Visitor session tracking
-* [ ] Visitor identification
-* [ ] Geo-location analytics
-* [ ] Language detection
-* [ ] Landing-page engagement analytics
-* [ ] Next.js frontend
-* [ ] Authentication
-* [ ] Analytics dashboard
 ```
 ---
 
 ## 7. Current Development Stage
 
-**SQAnalytics Backend v1.0 is complete and running in production.**
+**SQAnalytics Backend v1.2.0 is complete and running in production.**
 
 Current production flow
 
 ```text
 Printed QR
       ↓
-[Sub-domain].kndb.stream
+https://[Sub-domain].kndb.stream
+      ↓
+Human-Friendly Redirect URL
       ↓
 FastAPI (Render)
       ↓
@@ -267,15 +299,32 @@ Backend v1.0 ✅
 - Custom Domain
 - HTTPS
 
-Backend v1.1 🚧
+Backend v1.1 ✅
 
-- Visitor Sessions
-- Visitor Identification
-- GeoIP Analytics
-- Country / Region / City
-- Language Detection
-- Returning Visitors
-- Advanced Analytics API
+- Browser Detection
+- Operating System Detection
+- Device Detection
+- Analytics Summary API
+- Production Deployment
+- Cloudflare Custom Domain
+- HTTPS
+
+Backend v1.2 ✅
+
+- Human-Friendly QR URLs
+- Display Slug Support
+- URL Slug Normalization
+- Friendly Redirect URLs
+- Redirect URL API Response
+- Automatic Database Timestamps
+- Improved QR Generation
+
+Backend v1.2.1 🚧
+
+- Duplicate Slug Handling
+- HTTP Exception Improvements
+- URL Builder Helper
+- Codebase Cleanup
 
 Frontend v2.0
 
