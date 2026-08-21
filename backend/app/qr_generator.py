@@ -5,14 +5,28 @@ import qrcode
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw
 
-
+from app.config import settings
 # ---------------------------------------------------------
 # Load environment variables
 # ---------------------------------------------------------
 
-load_dotenv()
+BASE_URL = settings.BASE_URL
 
-BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
+def build_redirect_url(
+    short_code: str,
+    display_slug: str | None = None
+) -> str:
+    """
+    Build the public redirect URL for a QR code.
+    """
+
+    if display_slug:
+        return (
+            f"{BASE_URL}/r/"
+            f"{short_code}-{display_slug}"
+        )
+
+    return f"{BASE_URL}/r/{short_code}"
 
 
 # ---------------------------------------------------------
@@ -71,13 +85,10 @@ def generate_qr_image(
 # Build redirect URL
 # ---------------------------------------------------------
 
-    redirect_path = (
-        f"{short_code}-{display_slug}"
-        if display_slug
-        else short_code
+    redirect_url = build_redirect_url(
+        short_code,
+        display_slug
     )
-
-    redirect_url = f"{BASE_URL}/r/{redirect_path}"    
 
     # Create QR code with high error correction.
     # Level H allows approximately 30% error recovery,

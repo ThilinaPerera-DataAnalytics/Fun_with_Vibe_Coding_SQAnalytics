@@ -28,35 +28,74 @@ from app.crud import get_device_distribution
 from user_agents import parse
 
 from app.qr_generator import generate_qr_image
-from app.qr_generator import BASE_URL
+from app.qr_generator import build_redirect_url
+from app.qr_generator import OUTPUT_FOLDER
+
+from app.logger import logger
 
 app = FastAPI(
     title="SQAnalytics API",
-    description="Smart QR Analytics Platform Backend",
+    description="Smart QR Analytics Platform [Backend]",
     version="1.2.0"
 )
 
-@app.get("/")
+
+@app.get(
+        "/home",
+    tags=["Home"],
+    summary="Home endpoint",
+    description="Returns the API is running."
+        )
 def home():
+    """
+    Return a welcome message indicating that the API is running.
+    """
     return {
         "message": "SQAnalytics API is running"
     }
 
-@app.get("/health")
+
+@app.get(
+    "/health",
+    tags=["System"],
+    summary="Health check",
+    description="Returns the health status of the API.",
+)
 def health_check():
+    """
+    Return the current health status of the API.
+    """
     return {
         "status": "healthy"
     }
 
-@app.get("/version")
+
+@app.get(
+    "/version",
+    tags=["System"],
+    summary="API version",
+    description="Returns the current API version.",
+)
 def version():
+    """
+    Return the current application version.
+    """
     return {
         "project": "SQAnalytics",
         "version": "1.2.0"
     }
 
-@app.get("/db-test")
+
+@app.get(
+    "/db-test",
+    tags=["System"],
+    summary="Database connectivity test",
+    description="Verifies that the API can connect to PostgreSQL.",
+)
 def db_test():
+    """
+    Verify connectivity to the PostgreSQL database.
+    """
     try:
         with engine.connect() as connection:
             result = connection.execute(
@@ -74,30 +113,47 @@ def db_test():
             "error": str(e)
         }
 
-@app.post("/qr")
+
+@app.post(
+    "/qr",
+    tags=["QR Codes"],
+    summary="Create a new QR code",
+    description=(
+        "Creates a new QR record, generates a branded QR "
+        "image, and returns the redirect URL."
+    ),
+)
 def create_new_qr(
+
     qr: QRCreate,
     db: Session = Depends(get_db)
 ):
+    """
+    Create a new QR code, generate its branded QR image,
+    and return its metadata.
+    """
+
     result = create_qr(
-    db=db,
-    title=qr.title,
-    destination_url=qr.destination_url,
-    display_slug=qr.display_slug
+        db=db,
+        title=qr.title,
+        destination_url=qr.destination_url,
+        display_slug=qr.display_slug
     )
 
     created_qr = result["qr"]
-    qr_file = result["qr_file"]
 
-    redirect_url = (
-        f"{BASE_URL}/r/{created_qr.short_code}"
+    logger.info(
+        "QR created | short_code=%s | title=%s",
+        created_qr.short_code,
+        created_qr.title,
     )
 
-    if created_qr.display_slug:
-        redirect_url = (
-            f"{BASE_URL}/r/"
-            f"{created_qr.short_code}-{created_qr.display_slug}"
-        )
+    qr_file = result["qr_file"]
+
+    redirect_url = build_redirect_url(
+        created_qr.short_code,
+        created_qr.display_slug
+    )
 
     return {
         "qr_id": str(created_qr.qr_id),
@@ -110,10 +166,19 @@ def create_new_qr(
         "qr_file": qr_file
     }
 
-@app.get("/qr")
+
+@app.get(
+    "/qr",
+    tags=["QR Codes"],
+    summary="List QR codes",
+    description="Returns all registered QR codes.",
+)
 def get_qr_endpoint(
     db: Session = Depends(get_db)
 ):
+    """
+    Return all registered QR codes.
+    """
     qrs = get_all_qrs(db)
     results = []
 
@@ -129,12 +194,25 @@ def get_qr_endpoint(
         )
     return results
 
-@app.get("/r/{qr_identifier}")
+
+@app.get(
+    "/r/{qr_identifier}",
+    tags=["QR Codes"],
+    summary="Redirect QR scan",
+    description=(
+        "Processes a QR scan, records analytics, "
+        "and redirects the visitor."
+    ),
+)
 def redirect_qr(
     qr_identifier: str,
     request: Request,
     db: Session = Depends(get_db)
 ):
+    """
+    Process a QR scan, record analytics,
+    and redirect the visitor to the destination URL.
+    """
 
     # ---------------------------------
     # Extract short code from URL
@@ -148,6 +226,11 @@ def redirect_qr(
     )
 
     if not qr:
+
+        logger.warning(
+            "QR not found | short_code=%s",
+            short_code,
+        )
 
         return {
             "error": "QR code not found"
@@ -216,15 +299,40 @@ def redirect_qr(
         response_time_ms=response_time_ms
     )
 
+    logger.info(
+        (
+            "QR scanned | "
+            "short_code=%s | "
+            "browser=%s | "
+            "device=%s | "
+            "response=%sms"
+        ),
+        qr.short_code,
+        browser,
+        device_type,
+        response_time_ms,
+    )
+
     return RedirectResponse(
         url=qr.destination_url,
         status_code=302
     )
 
-@app.get("/analytics/summary")
+
+@app.get(
+    "/analytics/summary",
+    tags=["Analytics"],
+    summary="Analytics summary",
+    description="Returns high-level platform analytics.",
+)
 def analytics_summary(
     db: Session = Depends(get_db)
 ):
+    """
+    Return a summary of QR scan analytics,
+    including total scans, browser distribution,
+    and device distribution.
+    """
 
     total_scans = get_total_scans(db)
 
@@ -260,18 +368,32 @@ def analytics_summary(
         "device_distribution": device_results
     }
 
-@app.get("/qr/{short_code}/generate")
+
+@app.get(
+    "/qr/{short_code}/generate",
+    tags=["QR Codes"],
+    summary="Generate QR image",
+    description="Generates a PNG image for an existing QR code.",
+)
 def generate_qr(
     short_code: str,
     db: Session = Depends(get_db)
 ):
-
+    """
+    Generate a branded QR image
+    for an existing QR code.
+    """
     qr = get_qr_by_short_code(
         db=db,
         short_code=short_code
     )
 
     if not qr:
+
+        logger.warning(
+            "QR not found | short_code=%s",
+            short_code,
+        )
 
         return {
             "error": "QR code not found"
@@ -287,13 +409,19 @@ def generate_qr(
         "file": file_path
     }
 
-@app.get("/qr/{short_code}/download")
+
+@app.get(
+    "/qr/{short_code}/download",
+    tags=["QR Codes"],
+    summary="Download QR image",
+    description="Downloads the generated QR image.",
+)
 def download_qr(
     short_code: str,
     db: Session = Depends(get_db)
 ):
     """
-    Download a generated QR code as a PNG file.
+    Download the branded QR image for an existing QR code.
     """
 
     qr = get_qr_by_short_code(
@@ -302,11 +430,17 @@ def download_qr(
     )
 
     if not qr:
+
+        logger.warning(
+            "QR not found | short_code=%s",
+            short_code,
+        )
+
         return {
             "error": "QR code not found"
         }
 
-    file_path = Path("generated_qr") / f"{short_code}.png"
+    file_path = Path(OUTPUT_FOLDER) / f"{short_code}.png"
 
     if not file_path.exists():
 

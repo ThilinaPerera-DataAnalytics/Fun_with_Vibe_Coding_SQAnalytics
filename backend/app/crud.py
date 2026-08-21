@@ -10,6 +10,7 @@ from app.qr_generator import generate_qr_image
 import re
 import unicodedata
 
+
 def create_qr(
     db: Session,
     title: str,
