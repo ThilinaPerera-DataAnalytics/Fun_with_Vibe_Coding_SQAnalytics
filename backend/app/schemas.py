@@ -13,6 +13,10 @@ class QRCreate(BaseModel):
     destination_url: str
     display_slug: str | None = None
 
+class QRUpdate(BaseModel):
+    """ Schema for updating an existing QR code destination URL."""
+
+    destination_url: str
 
 class QRResponse(BaseModel):
     """Response model returned after QR creation or retrieval."""

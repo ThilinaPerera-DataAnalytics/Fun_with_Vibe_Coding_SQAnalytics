@@ -16,6 +16,7 @@ from app.database import engine
 from app.database import get_db
 
 from app.schemas import QRCreate
+from app.schemas import QRUpdate
 
 from app.crud import create_qr
 from app.crud import get_all_qrs
@@ -24,6 +25,7 @@ from app.crud import create_scan_event
 from app.crud import get_total_scans
 from app.crud import get_browser_distribution
 from app.crud import get_device_distribution
+from app.crud import update_qr_destination
 
 from user_agents import parse
 
@@ -454,3 +456,60 @@ def download_qr(
         media_type="image/png",
         filename=f"{short_code}.png"
     )
+
+@app.patch(
+    "/qr/{short_code}",
+    tags=["QR Codes"],
+    summary="Update QR destination",
+    description=(
+        "Updates the destination URL of an existing QR code "
+        "without changing its short code or QR image."
+    ),
+)
+def update_qr_destination_endpoint(
+    short_code: str,
+    destination_url: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Update the destination URL of an existing QR code.
+
+    The QR short code remains unchanged, meaning that
+    previously printed QR codes continue to work.
+    """
+
+    qr = get_qr_by_short_code(
+        db=db,
+        short_code=short_code
+    )
+
+    if not qr:
+
+        logger.warning(
+            "QR not found for destination update | short_code=%s",
+            short_code,
+        )
+
+        return {
+            "error": "QR code not found"
+        }
+
+    updated_qr = update_qr_destination(
+        db=db,
+        short_code=short_code,
+        destination_url=destination_url
+    )
+
+    logger.info(
+        "QR destination updated | short_code=%s | destination=%s",
+        short_code,
+        destination_url,
+    )
+
+    return {
+        "message": "QR destination updated successfully",
+        "short_code": updated_qr.short_code,
+        "display_slug": updated_qr.display_slug,
+        "destination_url": updated_qr.destination_url,
+        "status": updated_qr.status
+    }

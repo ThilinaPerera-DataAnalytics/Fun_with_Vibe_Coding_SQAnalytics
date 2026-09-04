@@ -108,6 +108,41 @@ def get_qr_by_short_code(
         .first()
     )
 
+def update_qr_destination(
+    db: Session,
+    short_code: str,
+    destination_url: str
+):
+    """
+    Update the destination URL of an existing QR code.
+
+    Args:
+        db: Active database session.
+        short_code: Unique QR short code.
+        destination_url: New destination URL.
+
+    Returns:
+        Updated QRCode object, or None if the QR code does not exist.
+    """
+
+    qr = (
+        db.query(QRCode)
+        .filter(QRCode.short_code == short_code)
+        .first()
+    )
+
+    if not qr:
+        return None
+
+    qr.destination_url = destination_url
+
+    # Let PostgreSQL record the modification time.
+    qr.updated_at = func.now()
+
+    db.commit()
+    db.refresh(qr)
+
+    return qr
 
 def create_scan_event(
     db: Session,
